@@ -1,0 +1,19 @@
+1. Got in Google Sheets
+2. Cross-referenced expenditure with results to find a resultid for each expenditure row.
+3. Deleted unwanted columns
+4. Exported to CSV
+5. Writing scripts to import CSVs into SQLite, while retaining data types - 50% complete
+6. Two tables in a Sqlite file which can be bundled into a Lambda
+
+
+We create process_exp.js to turn a CSV into perfect SQLlite database with all the data
+of the right type.
+
+To Do:
+
+- we need to do similar with results - a separate script
+
+
+
+
+
