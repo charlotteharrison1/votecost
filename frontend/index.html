@@ -1,0 +1,135 @@
+<!doctype html>
+<html>
+
+<head>
+  <meta charset="utf-8">
+  <meta content="width=device-width,initial-scale=1,minimal-ui" name="viewport">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/vuetify@3.7.19/dist/vuetify.min.css" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@mdi/font@latest/css/materialdesignicons.min.css" />
+  <link rel="stylesheet" href="https://fonts.bunny.net/css?family=roboto:400,500,700" />
+  <script type="importmap">
+    {
+      "imports": {
+        "vue": "https://cdn.jsdelivr.net/npm/vue@3.5.13/dist/vue.esm-browser.js",
+        "vuetify": "https://cdn.jsdelivr.net/npm/vuetify@3.7.19/dist/vuetify.esm.js",
+        "api_url": "./api_url.js"
+      }
+    }
+    </script>
+  <style>
+    [v-cloak] {
+      display: none;
+    }
+
+    .v-btn {
+      margin-bottom: 20px;
+    }
+
+    input {
+      font-size: 2rem;
+    }
+  </style>
+  <title>Vote Cost 2024</title>
+  <link rel="manifest" href="votecost.webmanifest" />
+</head>
+
+<body>
+  <v-layout v-cloak id="app">
+    <v-app theme="light">
+      <v-app-bar density="compact" color="#009688">
+        <v-app-bar-title style="user-select:none;">Vote Cost 2024</v-app-bar-title>
+      </v-app-bar>
+      <v-main>
+        <v-container fluid>
+          <v-autocomplete @update:model-value="findresults" label="Choose a constituency" :items="constituencies"
+            item-title="constituency" v-model="constituency"></v-autocomplete>
+          <v-alert v-if="message">{{message}}</v-alert>
+          <v-data-table v-if="!nodata" hide-default-footer :items="showdata"></v-data-table>
+        </v-container>
+      </v-main>
+    </v-app>
+  </v-layout>
+
+  <script type="module">
+    // imports
+    import { createApp, ref, computed } from "vue"
+    import { createVuetify } from "vuetify"
+    import api_url from "api_url"
+
+    // use vuetify for UI
+    const vuetify = createVuetify()
+
+    // create Vue.js app
+    createApp({
+
+      setup() {
+        // app state
+        const constituency = ref('')
+        const url = api_url
+        const message = ref('')
+        const constituencies = ref([])
+        const showdata = ref([])
+        const nodata = ref(true)
+
+        async function fetchconstituencies() {
+          const rawResponse = await fetch(url, {
+            method: 'POST',
+            headers: {
+              'Accept': 'application/json',
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ "sql": 'select distinct constituency_id, constituency from expenditure order by constituency asc ', "params": [] })
+          });
+          constituencies.value = (await rawResponse.json()).message
+          //console.log(constituencies.value)
+        }
+
+
+        async function findresults(constituencyName) {
+          const rawResponse = await fetch(url, {
+            method: 'POST',
+            headers: {
+              'Accept': 'application/json',
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ "sql": 'select * from expenditure inner join results on expenditure.resultid = results.id where constituency = ? ', "params": [constituencyName] })
+          });
+          //get just the data we want into the array
+          showdata.value = (await rawResponse.json()).message.map(function (i) {
+            return {
+              Position: i.candidate_result_position,
+              Name: i.candidate_given_name,
+              Surname: i.candidate_family_name,
+              Party: i.candidate_party,
+              Votes: i.candidate_vote_count,
+              Spending: new Intl.NumberFormat('en-GB', { style: 'currency', currency: 'GBP' }).format(i.total_reported_spending),
+              "Cost per Vote": new Intl.NumberFormat('en-GB', { style: 'currency', currency: 'GBP' }).format((i.total_reported_spending / i.candidate_vote_count).toFixed(2))
+            }
+          })
+          nodata.value = false
+          //console.log(showdata)  
+        }
+
+        //hydrate constituencies
+        fetchconstituencies()
+                
+        // make state available
+
+
+        return {
+          constituency,
+          constituencies,
+          findresults,
+          message,
+          showdata,
+          nodata
+        }
+      }
+    }).use(vuetify).mount('#app')
+
+
+
+  </script>
+</body>
+
+</html>

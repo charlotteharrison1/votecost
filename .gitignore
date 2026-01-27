@@ -4,3 +4,4 @@ node_modules
 terraform.tfvars
 terraform.tfstate
 terraform/terraform.tfstate.backup
+api_url.js
