@@ -41,8 +41,16 @@
       </v-app-bar>
       <v-main>
         <v-container fluid>
-          <v-autocomplete @update:model-value="findresults" label="Choose a constituency (start typing a name)" :items="constituencies"
-            item-title="constituency" v-model="constituency"></v-autocomplete>
+          <v-autocomplete
+            @update:model-value="findresults"
+            label="Choose constituencies (start typing names)"
+            :items="constituencies"
+            item-title="constituency"
+            v-model="constituency"
+            multiple
+            chips
+            closable-chips
+          ></v-autocomplete>
           <v-alert v-if="message">{{message}}</v-alert>
           <v-data-table v-if="!nodata" hide-default-footer :items="showdata" v-model:sort-by="sortBy"></v-data-table>
         </v-container>
@@ -78,7 +86,7 @@
 
       setup() {
         // app state
-        const constituency = ref('')
+        const constituency = ref([])
         const url = api_url
         const message = ref('')
         const constituencies = ref([])
@@ -100,18 +108,28 @@
         }
 
 
-        async function findresults(constituencyName) {
+        async function findresults(constituencyNames) {
+          if (!constituencyNames || constituencyNames.length === 0) {
+            showdata.value = []
+            nodata.value = true
+            return
+          }
+          const placeholders = constituencyNames.map(() => '?').join(', ')
           const rawResponse = await fetch(url, {
             method: 'POST',
             headers: {
               'Accept': 'application/json',
               'Content-Type': 'application/json'
             },
-            body: JSON.stringify({ "sql": 'select * from expenditure inner join results on expenditure.resultid = results.id where constituency = ? ', "params": [constituencyName] })
+            body: JSON.stringify({
+              "sql": `select * from expenditure inner join results on expenditure.resultid = results.id where constituency in (${placeholders}) `,
+              "params": constituencyNames
+            })
           });
           //get just the data we want into the array
           showdata.value = (await rawResponse.json()).message.map(function (i) {
             return {
+              Constituency: i.constituency,
               Position: i.candidate_result_position,
               Candidate: `${i.candidate_given_name} ${i.candidate_family_name}`,
               Party: i.candidate_party,
