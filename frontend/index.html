@@ -28,6 +28,15 @@
     input {
       font-size: 2rem;
     }
+
+    .results-container {
+      min-height: calc(100vh - 120px);
+      padding-bottom: 24px;
+    }
+
+    .app-footer {
+      margin-top: 24px;
+    }
   </style>
   <title>Vote Cost 2024</title>
   <link rel="manifest" href="votecost.webmanifest" />
@@ -40,7 +49,7 @@
         <v-app-bar-title style="user-select:none;">Vote Cost 2024</v-app-bar-title>
       </v-app-bar>
       <v-main>
-        <v-container fluid>
+        <v-container fluid class="results-container">
           <v-autocomplete
             @update:model-value="findresults"
             label="Choose constituencies (start typing names)"
@@ -52,10 +61,17 @@
             closable-chips
           ></v-autocomplete>
           <v-alert v-if="message">{{message}}</v-alert>
-          <v-data-table v-if="!nodata" hide-default-footer :items="showdata" v-model:sort-by="sortBy"></v-data-table>
+          <v-data-table
+            v-if="!nodata"
+            hide-default-footer
+            :items="showdata"
+            v-model:sort-by="sortBy"
+            :row-props="rowProps"
+            :items-per-page="-1"
+          ></v-data-table>
         </v-container>
       </v-main>
-      <v-footer class="text-center d-flex flex-column ga-2 py-4">
+      <v-footer class="text-center d-flex flex-column ga-2 py-4 app-footer">
         <div class="text-caption font-weight-regular">
           <p>How much did your vote cost?</p>
           <p>Use this site to find out how much a candidate spent in the 2024 General
@@ -93,6 +109,28 @@
         const showdata = ref([])
         const nodata = ref(true)
         const sortBy = ref([{ key: 'Position', order: 'asc' }])
+        const pastelPalette = [
+          '#FDE2E4',
+          '#E2F0CB',
+          '#CDE7F0',
+          '#FFF1CC',
+          '#EADCF8',
+          '#DFF7F4',
+          '#F7D9C4',
+          '#E6F4D7',
+          '#D7E3FC',
+          '#FBE7C6'
+        ]
+        const constituencyColors = new Map()
+
+        function getConstituencyColor(name) {
+          if (!name) return ''
+          if (!constituencyColors.has(name)) {
+            const index = constituencyColors.size % pastelPalette.length
+            constituencyColors.set(name, pastelPalette[index])
+          }
+          return constituencyColors.get(name)
+        }
 
         async function fetchconstituencies() {
           const rawResponse = await fetch(url, {
@@ -114,6 +152,9 @@
             nodata.value = true
             return
           }
+          // Reset colors when selection changes so palette order stays consistent with current picks
+          constituencyColors.clear()
+          constituencyNames.forEach((name) => getConstituencyColor(name))
           const placeholders = constituencyNames.map(() => '?').join(', ')
           const rawResponse = await fetch(url, {
             method: 'POST',
@@ -142,6 +183,11 @@
           //console.log(showdata)  
         }
 
+        function rowProps({ item }) {
+          const color = getConstituencyColor(item?.Constituency)
+          return color ? { style: { backgroundColor: color } } : {}
+        }
+
         //hydrate constituencies
         fetchconstituencies()
 
@@ -155,7 +201,8 @@
           message,
           showdata,
           nodata,
-          sortBy
+          sortBy,
+          rowProps
         }
       }
     }).use(vuetify).mount('#app')
