@@ -25,6 +25,10 @@ The backend is hosted in AWS. It is basically a Lambda function that has SQLite 
 
 The infrastructure is deployed using Terraform. The state is held in an s3 bucket. You need to change the name of the bucket in `main.tf` to one you own if you want to deploy to your AWS account.
 
+
+# In this fork
+I make some modifications to the frontend so that you can select multiple constituencies for comparison. They automatically appear in different colours for easy distinction, but this can be made into a toggleable option.
+
 ## The front end
 
 The front end is a one page website built on Vuejs and Vuetify.
